@@ -58,6 +58,7 @@ button {
   border: none;
   outline: none;
   transition: var(--transition);
+  color: var(--text-main);
 }
 
 input, select, textarea {
