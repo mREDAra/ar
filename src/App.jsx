@@ -402,7 +402,7 @@ function App() {
       
       <header className="flex items-center justify-between mb-6">
         <h1 className="flex items-center gap-2">
-          <Wallet className="text-green" size={28} />
+          <img src="/logo.jpg" alt="AR Wholesale Logo" style={{ height: '36px', borderRadius: '4px', objectFit: 'contain', background: '#fff' }} />
           <span>ادارة الأموال والمخزون</span>
         </h1>
         <button onClick={() => { fetchData(); fetchExchangeRate(); }} className="btn" style={{ padding: '0.5rem', background: 'var(--card-bg)' }}>
@@ -649,9 +649,9 @@ function App() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '30px' }}>
               <div>
-                <h1 style={{ color: '#333', margin: 0, fontSize: '32px', fontWeight: '900' }}>INVOICE</h1>
-                <p style={{ color: '#666', margin: '5px 0', fontWeight: 'bold' }}>AR Wholesale</p>
-                <p style={{ color: '#666', margin: 0 }}>Date: {format(new Date(printingInvoice.transaction.created_at), 'MMM dd, yyyy - HH:mm')}</p>
+                <img src="/logo.jpg" alt="AR Wholesale Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '10px' }} />
+                <h1 style={{ color: '#333', margin: 0, fontSize: '28px', fontWeight: '900', textTransform: 'uppercase' }}>Invoice</h1>
+                <p style={{ color: '#666', margin: '5px 0' }}>Date: {format(new Date(printingInvoice.transaction.created_at), 'MMM dd, yyyy - HH:mm')}</p>
                 <p style={{ color: '#a0a0a0', margin: '5px 0 0 0', fontSize: '12px' }}>TRX: {printingInvoice.transaction.id.split('-')[0]}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
