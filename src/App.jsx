@@ -419,7 +419,7 @@ function App() {
                 <Gem size={18} /> السيولة المتوفرة بالدولار
               </h3>
               <h1 dir="ltr" style={{ fontSize: '2.5rem', margin: 0 }}>
-                $ {unifiedNetWorth.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                $ {unifiedNetWorth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h1>
             </div>
             <div>
@@ -427,7 +427,7 @@ function App() {
                 <Package size={18} /> مجمد المخزون بالدولار
               </h3>
               <h1 dir="ltr" style={{ fontSize: '2rem', margin: 0, color: 'var(--sale)' }}>
-                $ {inventoryWorthUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                $ {inventoryWorthUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h1>
             </div>
           </div>
