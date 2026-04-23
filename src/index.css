@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
 
 :root {
   /* Colors */
@@ -35,10 +35,10 @@
 }
 
 body {
-  font-family: 'Tajawal', sans-serif;
+  font-family: 'Inter', sans-serif;
   background-color: var(--bg-color);
   color: var(--text-main);
-  direction: rtl;
+  direction: ltr;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   background-image: 

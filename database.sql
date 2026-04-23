@@ -57,3 +57,27 @@ ALTER TABLE public.transaction_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow ALL on inventory" ON public.inventory_items FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow ALL on transactions" ON public.transactions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow ALL on items" ON public.transaction_items FOR ALL USING (true) WITH CHECK (true);
+
+-- ==========================================
+-- التحديثات الجديدة (الديون، التقسيط، العناوين، الخصم)
+-- ==========================================
+
+-- 1. إضافة حقول جديدة لجدول الحركات
+ALTER TABLE public.transactions ADD COLUMN status TEXT DEFAULT 'completed' CHECK (status IN ('pending', 'completed', 'installment'));
+ALTER TABLE public.transactions ADD COLUMN discount_amount NUMERIC DEFAULT 0;
+ALTER TABLE public.transactions ADD COLUMN customer_address TEXT;
+ALTER TABLE public.transactions ADD COLUMN invoice_number SERIAL;
+ALTER TABLE public.transactions ADD COLUMN parent_id UUID REFERENCES public.transactions(id) ON DELETE CASCADE;
+
+-- 2. جدول جهات الاتصال (العملاء والموردين)
+CREATE TABLE public.contacts (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    type TEXT NOT NULL CHECK (type IN ('customer', 'supplier')),
+    name TEXT NOT NULL UNIQUE,
+    address TEXT,
+    phone TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow ALL on contacts" ON public.contacts FOR ALL USING (true) WITH CHECK (true);
