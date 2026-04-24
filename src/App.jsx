@@ -42,6 +42,7 @@ function App() {
 
   // Profit Reports State
   const [showProfitModal, setShowProfitModal] = useState(false);
+  const [profitTimeframe, setProfitTimeframe] = useState('month'); // 'month' or 'all'
   const [profitMonth, setProfitMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [profitData, setProfitData] = useState(null);
   const [loadingProfit, setLoadingProfit] = useState(false);
@@ -74,6 +75,7 @@ function App() {
 
   // Print Invoice State
   const [printingInvoice, setPrintingInvoice] = useState(null);
+  const [invoiceLang, setInvoiceLang] = useState('en'); // 'en' or 'tr'
 
   const isCartMode = form.type === 'purchase' || form.type === 'sale';
 
@@ -209,18 +211,29 @@ function App() {
     setLoadingProfit(true);
     setProfitData(null);
     try {
-      const [year, month] = profitMonth.split('-');
-      const startDate = new Date(year, month - 1, 1).toISOString();
-      const endDate = new Date(year, month, 1).toISOString(); // 1st of next month
+      let monthTxs;
+      
+      if (profitTimeframe === 'all') {
+        const { data, error: txErr } = await supabase
+          .from('transactions')
+          .select('*');
+        if (txErr) throw txErr;
+        monthTxs = data;
+      } else {
+        const [year, month] = profitMonth.split('-');
+        const startDate = new Date(year, month - 1, 1).toISOString();
+        const endDate = new Date(year, month, 1).toISOString(); // 1st of next month
 
-      // Fetch transactions for the month
-      const { data: monthTxs, error: txErr } = await supabase
-        .from('transactions')
-        .select('*')
-        .gte('created_at', startDate)
-        .lt('created_at', endDate);
+        // Fetch transactions for the month
+        const { data, error: txErr } = await supabase
+          .from('transactions')
+          .select('*')
+          .gte('created_at', startDate)
+          .lt('created_at', endDate);
 
-      if (txErr) throw txErr;
+        if (txErr) throw txErr;
+        monthTxs = data;
+      }
 
       // Filter relevant transactions
       const sales = monthTxs.filter(t => t.type === 'sale');
@@ -697,7 +710,6 @@ function App() {
       <header className="flex items-center justify-between mb-6">
         <h1 className="flex items-center gap-2">
           <img src="/logo.jpg" alt="AR Wholesale Logo" style={{ height: '36px', borderRadius: '4px', objectFit: 'contain', background: '#fff' }} />
-          <span>Money & Inventory Management</span>
         </h1>
         <div className="flex gap-2">
           <button onClick={() => setShowProfitModal(true)} className="btn flex items-center gap-2" style={{ padding: '0.5rem 1rem', background: 'var(--sale)', color: '#fff' }}>
@@ -1107,91 +1119,121 @@ function App() {
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', 
           background: 'white', zIndex: 9999, overflowY: 'auto' 
         }}>
-          <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '30px' }}>
-              <div>
-                <img src="/logo.jpg" alt="AR Wholesale Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '10px' }} />
-                <h1 style={{ color: '#333', margin: 0, fontSize: '28px', fontWeight: '900', textTransform: 'uppercase' }}>Invoice</h1>
-                <p style={{ color: '#666', margin: '5px 0' }}>Date: {format(new Date(printingInvoice.transaction.created_at), 'MMM dd, yyyy - HH:mm')}</p>
-                <p style={{ color: '#a0a0a0', margin: '5px 0 0 0', fontSize: '12px' }}>TRX: {printingInvoice.transaction.id.split('-')[0]}</p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ color: '#888', margin: '0 0 5px 0' }}>Billed To:</p>
-                <h3 style={{ color: '#333', margin: 0, fontSize: '20px' }}>{printingInvoice.transaction.person || 'Valued Customer'}</h3>
-                {printingInvoice.transaction.customer_address && (
-                  <p style={{ color: '#555', margin: '5px 0 0 0', fontSize: '14px' }}>{printingInvoice.transaction.customer_address}</p>
-                )}
-                {printingInvoice.transaction.invoice_number && (
-                  <p style={{ color: '#10b981', margin: '5px 0 0 0', fontWeight: 'bold' }}>Invoice #{printingInvoice.transaction.invoice_number}</p>
-                )}
-              </div>
-            </div>
-            
-            {/* Items Table */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
-              <thead>
-                <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-                  <th style={{ padding: '12px', textAlign: 'left', color: '#333' }}>Description</th>
-                  <th style={{ padding: '12px', textAlign: 'center', color: '#333' }}>Qty</th>
-                  <th style={{ padding: '12px', textAlign: 'right', color: '#333' }}>Unit Price</th>
-                  <th style={{ padding: '12px', textAlign: 'right', color: '#333' }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {printingInvoice.items.map((item, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '12px', color: '#444', fontWeight: '500' }}>{item.inventory_items?.name || 'Item'}</td>
-                    <td style={{ padding: '12px', textAlign: 'center', color: '#444' }}>{item.quantity}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', color: '#444' }}>
-                      {Number(item.unit_price).toLocaleString()} {printingInvoice.transaction.currency}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'right', color: '#444', fontWeight: 'bold' }}>
-                      {(Number(item.quantity) * Number(item.unit_price)).toLocaleString()} {printingInvoice.transaction.currency}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {/* Footer calculations */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ width: '50%', color: '#666', fontSize: '14px' }}>
-                <p><strong>Note:</strong> {printingInvoice.transaction.description}</p>
-                {printingInvoice.transaction.status === 'pending' && <p style={{ color: '#f59e0b', fontWeight: 'bold' }}>Status: UNPAID</p>}
-                {printingInvoice.transaction.status === 'completed' && <p style={{ color: '#10b981', fontWeight: 'bold' }}>Status: PAID</p>}
-                <p style={{ marginTop: '20px' }}>Thank you for your business!</p>
-              </div>
-              <div style={{ width: '40%', background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ color: '#555' }}>Subtotal:</span>
-                  <span style={{ color: '#333', fontWeight: 'bold' }}>
-                    {(Number(printingInvoice.transaction.total_amount) + Number(printingInvoice.transaction.discount_amount || 0)).toLocaleString()} {printingInvoice.transaction.currency}
-                  </span>
-                </div>
-                {Number(printingInvoice.transaction.discount_amount) > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ color: '#555' }}>Discount:</span>
-                    <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
-                      - {Number(printingInvoice.transaction.discount_amount).toLocaleString()} {printingInvoice.transaction.currency}
-                    </span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #ddd', paddingTop: '10px' }}>
-                  <span style={{ color: '#333', fontWeight: 'bold', fontSize: '18px' }}>Final Total:</span>
-                  <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '18px' }}>
-                    {Number(printingInvoice.transaction.total_amount).toLocaleString()} {printingInvoice.transaction.currency}
-                  </span>
-                </div>
-              </div>
-            </div>
+          {(() => {
+            const tr = (key) => {
+              const dict = {
+                'Invoice': { en: 'Invoice', tr: 'Fatura' },
+                'Date:': { en: 'Date:', tr: 'Tarih:' },
+                'TRX:': { en: 'TRX:', tr: 'İşlem No:' },
+                'Billed To:': { en: 'Billed To:', tr: 'Sayın:' },
+                'Invoice #': { en: 'Invoice #', tr: 'Fatura No: ' },
+                'Description': { en: 'Description', tr: 'Açıklama' },
+                'Qty': { en: 'Qty', tr: 'Miktar' },
+                'Unit Price': { en: 'Unit Price', tr: 'Birim Fiyatı' },
+                'Total': { en: 'Total', tr: 'Toplam' },
+                'Note:': { en: 'Note:', tr: 'Not:' },
+                'Status: UNPAID': { en: 'Status: UNPAID', tr: 'Durum: ÖDENMEDİ' },
+                'Status: PAID': { en: 'Status: PAID', tr: 'Durum: ÖDENDİ' },
+                'Thank you for your business!': { en: 'Thank you for your business!', tr: 'Bizi tercih ettiğiniz için teşekkür ederiz!' },
+                'Subtotal:': { en: 'Subtotal:', tr: 'Ara Toplam:' },
+                'Discount:': { en: 'Discount:', tr: 'İndirim:' },
+                'Final Total:': { en: 'Final Total:', tr: 'Genel Toplam:' },
+                'Valued Customer': { en: 'Valued Customer', tr: 'Değerli Müşteri' }
+              };
+              return dict[key] ? dict[key][invoiceLang] : key;
+            };
 
-            {/* Print Controls (Hidden on paper) */}
-            <div className="no-print" style={{ marginTop: '40px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-              <button className="btn" onClick={() => window.print()} style={{ background: '#22c55e', color: 'black', padding: '10px 20px', borderRadius: '5px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Print / Save PDF</button>
-              <button className="btn" onClick={() => setPrintingInvoice(null)} style={{ background: '#f87171', color: 'white', padding: '10px 20px', borderRadius: '5px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Close & Back</button>
-            </div>
-          </div>
+            return (
+              <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '30px' }}>
+                  <div>
+                    <img src="/logo.jpg" alt="AR Wholesale Logo" style={{ height: '60px', objectFit: 'contain', marginBottom: '10px' }} />
+                    <h1 style={{ color: '#333', margin: 0, fontSize: '28px', fontWeight: '900', textTransform: 'uppercase' }}>{tr('Invoice')}</h1>
+                    <p style={{ color: '#666', margin: '5px 0' }}>{tr('Date:')} {format(new Date(printingInvoice.transaction.created_at), 'MMM dd, yyyy - HH:mm')}</p>
+                    <p style={{ color: '#a0a0a0', margin: '5px 0 0 0', fontSize: '12px' }}>{tr('TRX:')} {printingInvoice.transaction.id.split('-')[0]}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ color: '#888', margin: '0 0 5px 0' }}>{tr('Billed To:')}</p>
+                    <h3 style={{ color: '#333', margin: 0, fontSize: '20px' }}>{printingInvoice.transaction.person || tr('Valued Customer')}</h3>
+                    {printingInvoice.transaction.customer_address && (
+                      <p style={{ color: '#555', margin: '5px 0 0 0', fontSize: '14px' }}>{printingInvoice.transaction.customer_address}</p>
+                    )}
+                    {printingInvoice.transaction.invoice_number && (
+                      <p style={{ color: '#10b981', margin: '5px 0 0 0', fontWeight: 'bold' }}>{tr('Invoice #')}{printingInvoice.transaction.invoice_number}</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Items Table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
+                  <thead>
+                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#333' }}>{tr('Description')}</th>
+                      <th style={{ padding: '12px', textAlign: 'center', color: '#333' }}>{tr('Qty')}</th>
+                      <th style={{ padding: '12px', textAlign: 'right', color: '#333' }}>{tr('Unit Price')}</th>
+                      <th style={{ padding: '12px', textAlign: 'right', color: '#333' }}>{tr('Total')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {printingInvoice.items.map((item, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '12px', color: '#444', fontWeight: '500' }}>{item.inventory_items?.name || 'Item'}</td>
+                        <td style={{ padding: '12px', textAlign: 'center', color: '#444' }}>{item.quantity}</td>
+                        <td style={{ padding: '12px', textAlign: 'right', color: '#444' }}>
+                          {Number(item.unit_price).toLocaleString()} {printingInvoice.transaction.currency}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'right', color: '#444', fontWeight: 'bold' }}>
+                          {(Number(item.quantity) * Number(item.unit_price)).toLocaleString()} {printingInvoice.transaction.currency}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                {/* Footer calculations */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ width: '50%', color: '#666', fontSize: '14px' }}>
+                    <p><strong>{tr('Note:')}</strong> {printingInvoice.transaction.description}</p>
+                    {printingInvoice.transaction.status === 'pending' && <p style={{ color: '#f59e0b', fontWeight: 'bold' }}>{tr('Status: UNPAID')}</p>}
+                    {printingInvoice.transaction.status === 'completed' && <p style={{ color: '#10b981', fontWeight: 'bold' }}>{tr('Status: PAID')}</p>}
+                    <p style={{ marginTop: '20px' }}>{tr('Thank you for your business!')}</p>
+                  </div>
+                  <div style={{ width: '40%', background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <span style={{ color: '#555' }}>{tr('Subtotal:')}</span>
+                      <span style={{ color: '#333', fontWeight: 'bold' }}>
+                        {(Number(printingInvoice.transaction.total_amount) + Number(printingInvoice.transaction.discount_amount || 0)).toLocaleString()} {printingInvoice.transaction.currency}
+                      </span>
+                    </div>
+                    {Number(printingInvoice.transaction.discount_amount) > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <span style={{ color: '#555' }}>{tr('Discount:')}</span>
+                        <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
+                          - {Number(printingInvoice.transaction.discount_amount).toLocaleString()} {printingInvoice.transaction.currency}
+                        </span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #ddd', paddingTop: '10px' }}>
+                      <span style={{ color: '#333', fontWeight: 'bold', fontSize: '18px' }}>{tr('Final Total:')}</span>
+                      <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '18px' }}>
+                        {Number(printingInvoice.transaction.total_amount).toLocaleString()} {printingInvoice.transaction.currency}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Print Controls (Hidden on paper) */}
+                <div className="no-print" style={{ marginTop: '40px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                  <button className="btn" onClick={() => window.print()} style={{ background: '#22c55e', color: 'black', padding: '10px 20px', borderRadius: '5px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Print / Save PDF</button>
+                  <button className="btn" onClick={() => setInvoiceLang(invoiceLang === 'en' ? 'tr' : 'en')} style={{ background: 'var(--sale)', color: 'white', padding: '10px 20px', borderRadius: '5px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                    {invoiceLang === 'en' ? 'Translate to Turkish' : 'Translate to English'}
+                  </button>
+                  <button className="btn" onClick={() => setPrintingInvoice(null)} style={{ background: '#f87171', color: 'white', padding: '10px 20px', borderRadius: '5px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Close & Back</button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1355,12 +1397,23 @@ function App() {
               <button onClick={() => setShowProfitModal(false)} className="btn no-print" style={{ background: 'transparent', padding: '0.2rem' }}><X size={20} /></button>
             </div>
             
-            <div className="flex gap-3 mb-4" style={{ alignItems: 'flex-end' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Select Month (YYYY-MM)</label>
-                <input type="month" className="form-control" value={profitMonth} onChange={(e) => setProfitMonth(e.target.value)} />
+            <div className="flex gap-3 mb-4" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div className="form-group mb-0" style={{ flex: 1, minWidth: '150px' }}>
+                <label>Timeframe</label>
+                <select className="form-control" value={profitTimeframe} onChange={(e) => setProfitTimeframe(e.target.value)}>
+                  <option value="month">Specific Month</option>
+                  <option value="all">All Time</option>
+                </select>
               </div>
-              <button onClick={generateProfitReport} className="btn btn-primary" style={{ height: '42px', background: 'var(--primary)', color: '#000', padding: '0 1.5rem' }} disabled={loadingProfit}>
+
+              {profitTimeframe === 'month' && (
+                <div className="form-group mb-0" style={{ flex: 1, minWidth: '150px' }}>
+                  <label>Select Month</label>
+                  <input type="month" className="form-control" value={profitMonth} onChange={(e) => setProfitMonth(e.target.value)} />
+                </div>
+              )}
+
+              <button onClick={generateProfitReport} className="btn btn-primary mb-0" style={{ height: '42px', background: 'var(--primary)', color: '#000', padding: '0 1.5rem', flex: 1, minWidth: '150px' }} disabled={loadingProfit}>
                 {loadingProfit ? 'Calculating...' : 'Generate Report'}
               </button>
             </div>
@@ -1368,7 +1421,7 @@ function App() {
             {profitData && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ background: 'var(--input-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--input-border)' }}>
-                  <h4 className="mb-3 text-muted text-center">Summary for month {profitMonth} (estimated in USD $)</h4>
+                  <h4 className="mb-3 text-muted text-center">Summary for {profitTimeframe === 'all' ? 'All Time' : `month ${profitMonth}`} (estimated in USD $)</h4>
                   
                   <div className="flex justify-between mb-2" style={{ borderBottom: '1px dashed var(--card-border)', paddingBottom: '0.5rem' }}>
                     <span>Total Sales Revenue ({profitData.salesCount} transactions):</span>

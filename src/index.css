@@ -84,9 +84,37 @@ input, select, textarea {
   padding: 2rem 1rem;
 }
 
-@media (max-width: 600px) {
+@media screen and (max-width: 600px) {
   .container {
+    padding: 1rem 0.5rem;
+  }
+  
+  .card {
     padding: 1rem;
+  }
+
+  /* Scale down huge typography on mobile for elegance */
+  h1 {
+    font-size: 1.7rem !important;
+  }
+  h2 {
+    font-size: 1.4rem !important;
+  }
+  h3 {
+    font-size: 1.1rem !important;
+  }
+  h4 {
+    font-size: 1rem !important;
+  }
+
+  .btn {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .form-control {
+    padding: 0.75rem;
+    font-size: 0.95rem;
   }
 }
 
@@ -185,36 +213,47 @@ input, select, textarea {
  * PRINT STYLES
  */
 @media print {
-  /* Hide everything in the body by default */
-  body * {
-    visibility: hidden;
-  }
-  
-  /* Reset body gradient and color for paper */
-  body {
+  body, #root {
     background: #fff !important;
     background-image: none !important;
     color: #000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
   }
 
-  /* Make the print container visible and position it absolutely */
-  #invoice-print-area, #invoice-print-area * {
-    visibility: visible;
+  /* Completely hide all elements in the container except the print area */
+  .container > *:not(#invoice-print-area) {
+    display: none !important;
   }
-  
+
+  /* Make sure the print area behaves like a normal document */
   #invoice-print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    color: #000;
-    background: #fff;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    background: #fff !important;
+    color: #000 !important;
   }
 
-  /* Ensure the print button inside the invoice doesn't print */
+  /* Hide print buttons */
   .no-print {
     display: none !important;
+  }
+  
+  /* Reset container styles for printing to use full page */
+  .container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  @page {
+    margin: 1cm;
   }
 }
