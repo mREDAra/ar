@@ -731,6 +731,18 @@ function App() {
   const pendingSales = transactions.filter(t => t.type === 'sale' && t.status === 'pending');
   const installmentPurchases = transactions.filter(t => t.type === 'purchase' && t.status === 'installment');
 
+  const totalDebts = useMemo(() => {
+    return installmentPurchases.reduce((acc, t) => {
+      const paidTx = transactions.filter(child => child.parent_id === t.id);
+      const totalPaid = paidTx.reduce((sum, child) => sum + Number(child.total_amount), 0);
+      const remaining = Number(t.total_amount) - totalPaid;
+      if (remaining > 0) {
+        acc[t.currency] = (acc[t.currency] || 0) + remaining;
+      }
+      return acc;
+    }, { USD: 0, TRY: 0 });
+  }, [installmentPurchases, transactions]);
+
   return (
     <div className="container">
       <Toaster position="top-center" />
@@ -1040,7 +1052,15 @@ function App() {
 
           {installmentPurchases.length > 0 && (
             <div>
-              <h3 className="flex items-center gap-2 mb-4 text-danger"><CreditCard size={20} /> Installment Purchase Invoices (Debts)</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="flex items-center gap-2 text-danger m-0"><CreditCard size={20} /> Installment Purchase Invoices (Debts)</h3>
+                <span dir="ltr" className="text-danger font-bold" style={{ fontSize: '1rem', background: 'rgba(239, 68, 68, 0.1)', padding: '0.3rem 0.8rem', borderRadius: '6px' }}>
+                  Total: {totalDebts.USD > 0 && `${totalDebts.USD.toLocaleString()} $`}
+                  {totalDebts.USD > 0 && totalDebts.TRY > 0 && ' | '}
+                  {totalDebts.TRY > 0 && `${totalDebts.TRY.toLocaleString()} TL`}
+                  {totalDebts.USD === 0 && totalDebts.TRY === 0 && '0'}
+                </span>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {installmentPurchases.map(t => {
                   const paidTx = transactions.filter(child => child.parent_id === t.id);
