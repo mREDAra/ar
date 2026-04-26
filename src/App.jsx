@@ -1121,7 +1121,7 @@ function App() {
                       {t.status === 'pending' ? <span style={{ color: 'var(--warning)', fontSize: '0.8rem', paddingRight: '10px' }}>(Pending)</span> : null}
                     </h4>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      {getTypeLabel(t.type)} • {format(new Date(t.created_at), 'dd/MM/yyyy p')}
+                      {t.parent_id ? 'Debt Payment' : getTypeLabel(t.type)} • {format(new Date(t.created_at), 'dd/MM/yyyy p')}
                     </p>
                   </div>
                 </div>
