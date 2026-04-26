@@ -691,7 +691,7 @@ function App() {
     setSubmitting(false);
   };
 
-  const getTypeLabel = (type) => ({deposit:'Deposit',withdrawal:'Withdrawal',purchase:'Purchases',sale:'Sales',expense:'Expenses'})[type] || type;
+  const getTypeLabel = (type) => ({deposit:'Deposit',withdrawal:'Withdrawal',purchase:'Purchases',sale:'Sales',expense:'Expense / Withdrawal'})[type] || type;
   const getTypeColorClass = (type) => (type === 'deposit' || type === 'sale') ? 'text-green' : 'text-red';
   const getTypeIcon = (type) => (type === 'deposit' || type === 'sale') ? <ArrowDownRight size={20} className="text-green" /> : <ArrowUpRight size={20} className="text-red" />;
 
@@ -701,7 +701,9 @@ function App() {
                          (t.person && t.person.toLowerCase().includes(searchQuery.toLowerCase()));
     
     // Dropdowns
-    const matchesType = filterType === 'all' || t.type === filterType;
+    const matchesType = filterType === 'all' || 
+                        t.type === filterType || 
+                        (filterType === 'expense' && t.type === 'withdrawal');
     const matchesCurrency = filterCurrency === 'all' || t.currency === filterCurrency;
     
     // Dates
@@ -1310,10 +1312,9 @@ function App() {
                 <select className="form-control" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                   <option value="all">All</option>
                   <option value="deposit">Income Deposit</option>
-                  <option value="withdrawal">Cash Withdrawal</option>
                   <option value="sale">Sales</option>
                   <option value="purchase">Purchases</option>
-                  <option value="expense">Expenses</option>
+                  <option value="expense">Expenses / Withdrawals</option>
                 </select>
               </div>
               <div className="form-group" style={{ flex: 1 }}>
