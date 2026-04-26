@@ -77,6 +77,10 @@ function App() {
   const [printingInvoice, setPrintingInvoice] = useState(null);
   const [invoiceLang, setInvoiceLang] = useState('en'); // 'en' or 'tr'
 
+  // Add Product State
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+
   const isCartMode = form.type === 'purchase' || form.type === 'sale';
 
   const fetchExchangeRate = async () => {
@@ -299,6 +303,30 @@ function App() {
     } finally {
       setLoadingProfit(false);
     }
+  };
+
+  const handleAddProduct = async (e) => {
+    e.preventDefault();
+    if (!newProductName.trim()) {
+      toast.error('Please enter a product name');
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.from('inventory_items').insert([{
+      name: newProductName.trim(),
+      stock_quantity: 0,
+      average_cost_usd: 0
+    }]);
+
+    if (error) {
+      toast.error('Error adding product');
+    } else {
+      toast.success('Product added successfully');
+      setNewProductName('');
+      setShowAddProductModal(false);
+      fetchData();
+    }
+    setSubmitting(false);
   };
 
   const handleInputChange = (e) => {
@@ -962,7 +990,12 @@ function App() {
 
       {/* Inventory Dashboard Bar */}
       <div className="card mb-6">
-        <h3 className="flex items-center gap-2 mb-4 text-primary"><Package size={20} /> Quick Inventory Check</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="flex items-center gap-2 text-primary m-0"><Package size={20} /> Quick Inventory Check</h3>
+          <button onClick={() => setShowAddProductModal(true)} className="btn flex items-center gap-2" style={{ padding: '0.4rem 0.8rem', background: 'var(--card-bg)', border: '1px solid var(--primary)', color: 'var(--primary)', fontSize: '0.9rem' }}>
+            <Plus size={16} /> Add Product
+          </button>
+        </div>
         <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
           {products.map(p => (
             <div key={p.id} style={{ minWidth: '150px', background: 'var(--input-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--input-border)' }}>
@@ -1459,6 +1492,33 @@ function App() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Add Product Modal */}
+      {showAddProductModal && (
+        <div className="modal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="modal-content" style={{ maxWidth: '500px', width: '100%', margin: '0 1rem' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="m-0 text-primary flex items-center gap-2"><Package size={20} /> Add New Product</h3>
+              <button onClick={() => setShowAddProductModal(false)} className="btn no-print" style={{ background: 'transparent', padding: '0.2rem' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleAddProduct}>
+              <div className="form-group mb-4">
+                <label>Product Name</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={newProductName} 
+                  onChange={(e) => setNewProductName(e.target.value)} 
+                  placeholder="Enter product name"
+                  autoFocus
+                />
+              </div>
+              <button type="submit" className="btn" style={{ width: '100%', background: 'var(--primary)', color: '#000' }} disabled={submitting}>
+                {submitting ? 'Adding...' : 'Add Product'}
+              </button>
+            </form>
           </div>
         </div>
       )}
