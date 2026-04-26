@@ -241,7 +241,7 @@ function App() {
 
       // Filter relevant transactions
       const sales = monthTxs.filter(t => t.type === 'sale');
-      const expenses = monthTxs.filter(t => t.type === 'expense' || t.type === 'withdrawal');
+      const expenses = monthTxs.filter(t => t.type === 'expense' && !t.parent_id);
 
       // Fetch transaction items for sales to get COGS
       let totalCogsUsd = 0;
@@ -1497,7 +1497,7 @@ function App() {
                   </div>
 
                   <div className="flex justify-between mb-3" style={{ borderBottom: '2px solid var(--card-border)', paddingBottom: '0.5rem' }}>
-                    <span>Total Expenses and Withdrawals ({profitData.expensesCount} transactions):</span>
+                    <span>Total Operational Expenses ({profitData.expensesCount} transactions):</span>
                     <span dir="ltr" className="text-danger font-bold"> - {profitData.totalExpensesUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} $</span>
                   </div>
 
