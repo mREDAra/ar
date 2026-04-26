@@ -241,7 +241,11 @@ function App() {
 
       // Filter relevant transactions
       const sales = monthTxs.filter(t => t.type === 'sale');
-      const expenses = monthTxs.filter(t => t.type === 'expense' && !t.parent_id);
+      const expenses = monthTxs.filter(t => {
+        if (t.type === 'expense' && !t.parent_id) return true;
+        if (t.type === 'withdrawal' && t.person !== 'System') return true;
+        return false;
+      });
 
       // Fetch transaction items for sales to get COGS
       let totalCogsUsd = 0;
@@ -820,8 +824,7 @@ function App() {
                   <option value="deposit">Income Deposit</option>
                   <option value="sale">Sales Invoice (Goods)</option>
                   <option value="purchase">Purchase Invoice (Goods)</option>
-                  <option value="expense">Pay Expense</option>
-                  <option value="withdrawal">Cash Withdrawal</option>
+                  <option value="expense">Expense / Withdrawal</option>
                 </select>
               </div>
 
@@ -917,18 +920,13 @@ function App() {
               
               <div className="form-group mb-4" style={{ flex: '1 1 150px' }}>
                 <label>{(form.type === 'expense' || form.type === 'withdrawal') ? 'Expense Type / Entity' : 'Name / Company'}</label>
-                {form.type === 'expense' ? (
+                {(form.type === 'expense' || form.type === 'withdrawal') ? (
                   <select name="person" className="form-control" value={form.person} onChange={handleInputChange}>
-                    <option value="">Select payment entity...</option>
-                    <option value="Porter">Porter</option>
-                    <option value="Bill">Bill</option>
-                    <option value="Other">Other</option>
-                  </select>
-                ) : form.type === 'withdrawal' ? (
-                  <select name="person" className="form-control" value={form.person} onChange={handleInputChange}>
-                    <option value="">Select withdrawal reason...</option>
+                    <option value="">Select reason or entity...</option>
                     <option value="Food">Food</option>
                     <option value="Ayham's Expense">Ayham's Expense</option>
+                    <option value="Porter">Porter</option>
+                    <option value="Bill">Bill</option>
                     <option value="Other">Other</option>
                   </select>
                 ) : (
